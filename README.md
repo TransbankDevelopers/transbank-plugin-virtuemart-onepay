@@ -17,7 +17,7 @@ Este plugin de Virtuemart 3.x implementa el [SDK PHP de Onepay](https://github.c
 
 Para apoyar el levantamiento rápido de un ambiente de desarrollo, hemos creado la especificación de contenedores a través de Docker Compose.
 
-Para usarlo seguir el siguiente [README Virtuemart 3.x](./docker-virtuemart3/README.md)
+Para usarlo seguir el siguiente [README Virtuemart 3.x](./docker-virtuemart3)
 
 ## Instalación del plugin para un comercio
 
