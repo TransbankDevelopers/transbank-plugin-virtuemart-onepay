@@ -1,0 +1,21 @@
+version: '2'
+services:
+  db:
+    image: 'mysql:5.5'
+    container_name: 'onepay_virtuemart_db'
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+  web:
+    image: 'opentools/docker-virtuemart:j3vm3'
+    container_name: 'onepay_virtuemart_web'
+    links:
+      - db
+    ports:
+      - '80:80'
+    depends_on:
+      - db
+    environment:
+      - JOOMLA_DB_PASSWORD=admin
+      - JOOMLA_ADMIN_USER=admin
+      - JOOMLA_ADMIN_PASSWORD=password
+      - JOOMLA_ADMIN_EMAIL=admin@example.com
