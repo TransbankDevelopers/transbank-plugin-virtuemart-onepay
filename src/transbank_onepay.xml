@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<extension version="2.5" type="plugin" group="vmpayment" method="upgrade">
+	<name>Transbank Onepay</name>
+ 	<author>Transbank</author>
+    <license>https://github.com/TransbankDevelopers/transbank-plugin-virtuemart-onepay/LICENCE</license>
+	<version>1.0.0</version>
+	<description>Transbank Onepay</description>
+    <creationDate>October 2018</creationDate>
+	<files>
+        <filename plugin="transbank_onepay">transbank_onepay.php</filename>
+        <folder>language</folder>
+	</files>
+    <vmconfig>
+        <fields name="params">
+            <fieldset name="payment" addfieldpath="/plugins/vmpayment/transbank_onepay/transbank_onepay/fields">
+            <field name="transbank_onepay_environment" type="list" default="TEST" label="VMPAYMENT_TRANSBANK_ONEPAY_ENVIRONMENT">
+                <option value="TEST">INTEGRACIÓN</option>
+                <option value="LIVE">PRODUCCIÓN</option>
+            </field>
+            <field name="transbank_onepay_apikey_test" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_APIKEY_TEST" size="100" />
+            <field name="transbank_onepay_shared_secret_test" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_SHARED_SECRET_TEST" size="100" />
+            <field name="transbank_onepay_apikey_live" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_APIKEY_LIVE" size="100" />
+            <field name="transbank_onepay_shared_secret_live" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_SHARED_SECRET_LIVE" size="100" />
+            <field name="transbank_onepay_logo_url" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_LOGO_URL" size="100" />
+            </fieldset>
+        </fields>
+    </vmconfig>
+</extension>
