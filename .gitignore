@@ -1,5 +1,6 @@
 .DS_Store
 /.idea
 .idea
-src/library/transbank-sdk-php
+src/transbank_onepay/library/transbank-sdk-php
+docker-virtuemart3/www/**
 plugin-transbank-onepay-**.zip
