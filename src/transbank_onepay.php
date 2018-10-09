@@ -52,12 +52,12 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     /*
     const TRANSBANK_ONEPAY_STATUS = 'transbank_onepay_status';
     const TRANSBANK_ONEPAY_SORT_ORDER = 'transbank_onepay_sort_order';
+    */
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID = 'transbank_onepay_order_status_id_paid';
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED = 'transbank_onepay_order_status_id_failed';
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED = 'transbank_onepay_order_status_id_rejected';
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_CANCELLED = 'transbank_onepay_order_status_id_cancelled';
     const TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED = 'transbank_onepay_order_status_configured';
-    */
 
     function __construct (& $subject, $config) {
 		parent::__construct ($subject, $config);
@@ -65,14 +65,10 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 		$this->_tablepkey = 'id';
 		$this->_tableId = 'id';
         $varsToPush = $this->getVarsToPush();
+        //$this->logInfo(json_encode($varsToPush));
         $this->setConfigParameterable($this->_configTableFieldName, $varsToPush);
-
-        $this->softwareVersion = '3.x';
-
-        $this->logInfo('Log: ' . JFactory::getConfig()->get(self::TRANSBANK_ONEPAY_ENVIRONMENT, 'no definida'));
-
+        //redirect to create the diagnostic pdf
         if (isset($_GET['diagnostic_pdf'])) {
-            $this->logInfo('Creando PDF');
             $this->createDiagnosticPdf();
         }
     }
@@ -95,48 +91,70 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             self::TRANSBANK_ONEPAY_SHARED_SECRET_TEST => 'varchar(100)',
             self::TRANSBANK_ONEPAY_APIKEY_LIVE => 'varchar(100)',
             self::TRANSBANK_ONEPAY_SHARED_SECRET_LIVE => 'varchar(100)',
-            self::TRANSBANK_ONEPAY_LOGO_URL => 'varchar(500)'
+            self::TRANSBANK_ONEPAY_LOGO_URL => 'varchar(500)',
+            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID => 'varchar(10)',
+            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED => 'varchar(10)',
+            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED => 'varchar(10)',
+            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_CANCELLED => 'varchar(10)',
+            self::TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED => 'varchar(100)'
         );
         return $SQLfields;
     }
 
     function plgVmDeclarePluginParamsPaymentVM3(&$data) {
-		return $this->declarePluginParams('payment', $data);
+        $ret = $this->declarePluginParams('payment', $data);
+        if ($ret == 1) {
+            $this->logInfo('Configuracion guardada correctamente');
+        }
+        return $ret;
     }
 
 	function plgVmSetOnTablePluginParamsPayment($name, $id, &$table) {
-		return $this->setOnTablePluginParams ($name, $id, $table);
+		return $this->setOnTablePluginParams($name, $id, $table);
+    }
+
+    private function getMethodPayment() {
+        $cid = vRequest::getvar('cid', NULL, 'array');
+        if (is_Array($cid)) {
+            $virtuemart_paymentmethod_id = $cid[0];
+        } else {
+            $virtuemart_paymentmethod_id = $cid;
+        }
+        if (!($method = $this->getVmPluginMethod($virtuemart_paymentmethod_id))) {
+            return NULL; // Another method was selected, do nothing
+        }
+        return $method;
+    }
+
+    private function getConfig($key) {
+        $method = $this->getMethodPayment();
+        return $method != NULL ? $method->$key : NULL;
     }
 
     public function getEnvironment() {
-        return 'not implemented';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ENVIRONMENT);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ENVIRONMENT);
     }
 
     public function getApiKey() {
-        return 'not implemented';
-        /*
         $environment = $this->getEnvironment();
         if ($environment == 'LIVE') {
-            return $this->config->get(self::TRANSBANK_ONEPAY_APIKEY_LIVE);
+            return $this->getConfig(self::TRANSBANK_ONEPAY_APIKEY_LIVE);
         } else {
-            return $this->config->get(self::TRANSBANK_ONEPAY_APIKEY_TEST);
-        }*/
+            return $this->getConfig(self::TRANSBANK_ONEPAY_APIKEY_TEST);
+        }
     }
 
     public function getSharedSecret() {
-        return 'not implemented';
-        /*$environment = $this->getEnvironment();
+        $environment = $this->getEnvironment();
         if ($environment == 'LIVE') {
-            return $this->config->get(self::TRANSBANK_ONEPAY_SHARED_SECRET_LIVE);
+            return $this->getConfig(self::TRANSBANK_ONEPAY_SHARED_SECRET_LIVE);
         } else {
-            return $this->config->get(self::TRANSBANK_ONEPAY_SHARED_SECRET_TEST);
-        }*/
+            return $this->getConfig(self::TRANSBANK_ONEPAY_SHARED_SECRET_TEST);
+        }
     }
 
     public function getLogoUrl() {
-        return 'not implemented';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_LOGO_URL);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_LOGO_URL);
     }
 
     public function getPluginVersion() {
@@ -144,11 +162,11 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     }
 
     public function getSoftwareName() {
-        return 'Virtuemart';
+        return vmVersion::$PRODUCT;
     }
 
     public function getSoftwareVersion() {
-        return $this->softwareVersion;
+        return vmVersion::$RELEASE;
     }
 
     public function getLogfileLocation() {
@@ -161,28 +179,23 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     }
 
     public function getOrderStatusIdPaid() {
-        return 'paid';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID);
     }
 
     public function getOrderStatusIdFailed() {
-        return 'failed';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED);
     }
 
     public function getOrderStatusIdRejected() {
-        return 'rejected';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED);
     }
 
     public function getOrderStatusIdCancelled() {
-        return 'cancelled';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_CANCELLED);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_CANCELLED);
     }
 
     public function getStatusConfigured() {
-        return 'not implemented';
-        //return $this->config->get(self::TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED);
+        return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED);
     }
 
     /**
@@ -396,6 +409,8 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         $pdf->addLogs();
 
         $pdf->Output();
+
+        die();
     }
 
     /**

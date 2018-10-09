@@ -22,7 +22,8 @@ class JFormFieldDiagnosticPdf extends JFormField {
 			$virtuemart_paymentmethod_id = $cid;
 		}
 
-        $html = "<style>
+        $html = "
+        <style>
             .diagnosticButton {
                 font: bold 14px Arial;
                 text-decoration: none;
