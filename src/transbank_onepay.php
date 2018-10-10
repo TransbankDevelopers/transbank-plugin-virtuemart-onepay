@@ -12,8 +12,12 @@ if (!class_exists('vmPSPlugin')) {
 
 defined ('DIR_SYSTEM') or define ('DIR_SYSTEM', VMPATH_PLUGINS . '/vmpayment/transbank_onepay/transbank_onepay/');
 
-require_once(DIR_SYSTEM.'library/transbank-sdk-php/init.php');
-require_once(DIR_SYSTEM.'library/DiagnosticPDF.php');
+if (!class_exists('OnepayBase')) {
+    require_once(DIR_SYSTEM.'library/transbank-sdk-php/init.php');
+}
+if (!class_exists('DiagnosticPDF')) {
+    require_once(DIR_SYSTEM.'library/DiagnosticPDF.php');
+}
 
 use \Transbank\Onepay\OnepayBase;
 use \Transbank\Onepay\ShoppingCart;
@@ -49,10 +53,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     const TRANSBANK_ONEPAY_APIKEY_LIVE = 'transbank_onepay_apikey_live';
     const TRANSBANK_ONEPAY_SHARED_SECRET_LIVE = 'transbank_onepay_shared_secret_live';
     const TRANSBANK_ONEPAY_LOGO_URL = 'transbank_onepay_logo_url';
-    /*
-    const TRANSBANK_ONEPAY_STATUS = 'transbank_onepay_status';
-    const TRANSBANK_ONEPAY_SORT_ORDER = 'transbank_onepay_sort_order';
-    */
+
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID = 'transbank_onepay_order_status_id_paid';
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED = 'transbank_onepay_order_status_id_failed';
     const TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED = 'transbank_onepay_order_status_id_rejected';
@@ -64,19 +65,42 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 		$this->tableFields = array_keys($this->getTableSQLFields());
 		$this->_tablepkey = 'id';
 		$this->_tableId = 'id';
-        $varsToPush = $this->getVarsToPush();
-        //$this->logInfo(json_encode($varsToPush));
-        $this->setConfigParameterable($this->_configTableFieldName, $varsToPush);
-        //redirect to create the diagnostic pdf
-        if (isset($_GET['diagnostic_pdf'])) {
-            $this->createDiagnosticPdf();
+        if ($config['name'] == self::PLUGIN_CODE) {
+
+            $varsToPush = $this->getVarsToPush();
+            $orderStatuses = $this->getOrderStatuses();
+
+            //create un array of order status original with order status configured by user, used for show it in pdf of diagnostic
+            $dataPost = $_POST['params'];
+            $keyBase = 'transbank_onepay_order_status_id_';
+            $orderStatusValues = array();
+
+            foreach ($dataPost as $key => $value) {
+                if (strpos($key, $keyBase) !== false) {
+                    $orderStatusNameOriginal = substr($key, strlen($keyBase), strlen($key));
+                    $orderStatusNameConfiguredByUser = $this->getOrderStatusName($orderStatuses, $value);
+                    array_push($orderStatusValues, $orderStatusNameOriginal . '(' . $orderStatusNameConfiguredByUser . ')');
+                }
+            }
+
+            //add TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED to varsToPush to save in config system
+            $varsToPush[self::TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED] = array(implode(',', $orderStatusValues), 'char');
+
+            $this->setConfigParameterable($this->_configTableFieldName, $varsToPush);
+
+            //redirect to create the diagnostic pdf
+            if (isset($_GET['diagnostic_pdf'])) {
+                $this->createDiagnosticPdf();
+            }
         }
     }
 
+    //Override
     function getVmPluginCreateTableSQL() {
         return $this->createTableSQL('Payment Transbank Onepay Table');
     }
 
+    //Override
     function getTableSQLFields() {
         $SQLfields = array(
             'id'                          => 'int(1) UNSIGNED NOT NULL AUTO_INCREMENT',
@@ -101,6 +125,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $SQLfields;
     }
 
+    //Override
     function plgVmDeclarePluginParamsPaymentVM3(&$data) {
         $ret = $this->declarePluginParams('payment', $data);
         if ($ret == 1) {
@@ -109,10 +134,62 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $ret;
     }
 
+    //Override
 	function plgVmSetOnTablePluginParamsPayment($name, $id, &$table) {
 		return $this->setOnTablePluginParams($name, $id, $table);
     }
 
+    //Helpers
+
+    /**
+     * return array os order status with id and name fields
+     */
+    private function getOrderStatuses() {
+        $options = array();
+		$db = JFactory::getDbo();
+		$query = 'SELECT `order_status_code` AS value, `order_status_name` AS text
+                 FROM `#__virtuemart_orderstates`
+                 WHERE `virtuemart_vendor_id` = 1
+                 ORDER BY `ordering` ASC ';
+		$db->setQuery($query);
+		$values = $db->loadObjectList();
+		foreach ($values as $value) {
+            $id = $value->value;
+            $name = $value->text;
+            $index = strrpos($name, "_");
+            $name = substr($name, $index + 1, strlen($name));
+            $options[] = array('id' => $id, 'name' => $name);
+        }
+        return $options;
+    }
+
+    /**
+     * filter and return order info by order status name
+     */
+    private function getOrderStatusId($orderStatuses, $statusName) {
+        foreach ($orderStatuses as $orderStatus) {
+            if (trim(strtoupper($orderStatus['name'])) == trim(strtoupper($statusName))) {
+                return $orderStatus['id'];
+            }
+        }
+        return '';
+    }
+
+    /**
+     * filter and return order info by order status id
+     */
+    private function getOrderStatusName($orderStatuses, $statusId) {
+        foreach ($orderStatuses as $orderStatus) {
+            if (trim(strtoupper($orderStatus['id'])) == trim(strtoupper($statusId))) {
+                return $orderStatus['name'];
+            }
+        }
+        return '';
+    }
+
+    /**
+     * return method payment from virtuemart system by id
+     */
     private function getMethodPayment() {
         $cid = vRequest::getvar('cid', NULL, 'array');
         if (is_Array($cid)) {
@@ -126,6 +203,11 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $method;
     }
 
+    //get configurations
+
+    /**
+     * return configuration for the plugin
+     */
     private function getConfig($key) {
         $method = $this->getMethodPayment();
         return $method != NULL ? $method->$key : NULL;
@@ -178,6 +260,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return self::LOG_FILENAME;
     }
 
+    //Order statuses
     public function getOrderStatusIdPaid() {
         return $this->getConfig(self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID);
     }
@@ -223,169 +306,9 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     }
 
     /**
-     * create a transaction in onepay
-     */
-    public function createTransaction($channel, $paymentMethod, $items) {
-
-        if ($channel == null) {
-            return $this->failCreate('Falta parámetro channel');
-        }
-
-        if ($paymentMethod != self::PLUGIN_CODE) {
-            return $this->failCreate('Método de pago no es Transbank Onepay');
-        }
-
-        try {
-
-            $options = $this->getOnepayOptions();
-
-            $cart = new ShoppingCart();
-
-            foreach($items as $qItem) {
-                $item = new Item($qItem['name'], intval($qItem['quantity']), intval($qItem['price']));
-                $cart->add($item);
-            }
-
-            $transaction = Transaction::create($cart, $channel, $options);
-
-            $amount = $cart->getTotal();
-            $occ = $transaction->getOcc();
-            $ott = $transaction->getOtt();
-            $externalUniqueNumber = $transaction->getExternalUniqueNumber();
-            $issuedAt = $transaction->getIssuedAt();
-
-            $response = array(
-                'amount' => $amount,
-                'occ' => $occ,
-                'ott' => $ott,
-                'externalUniqueNumber' => $externalUniqueNumber,
-                'issuedAt' => $issuedAt,
-                'qrCodeAsBase64' => $transaction->getQrCodeAsBase64()
-            );
-
-            $this->logDebug('Transacción creada: ' . json_encode($response));
-
-            return $response;
-
-        } catch (TransbankException $transbankException) {
-            return $this->failCreate($transbankException->getMessage());
-        }
-    }
-
-    private function failCreate($message) {
-        $this->logError('Transacción fallida: ' . $message);
-        return array('error' => true, 'message' => $message);
-    }
-
-    /**
-     * commit a transaction in onepay
-     */
-    public function commitTransaction($status, $occ, $externalUniqueNumber) {
-
-        $options = $this->getOnepayOptions();
-
-        $orderStatusPaid = $this->getOrderStatusIdPaid();
-        $orderStatusFailed = $this->getOrderStatusIdFailed();
-        $orderStatusRejected = $this->getOrderStatusIdRejected();
-        $orderStatusCancelled = $this->getOrderStatusIdCancelled();
-
-        $detail = "<b>Estado:</b> {$status}
-                <br><b>OCC:</b> {$occ}
-                <br><b>N&uacute;mero de carro:</b> {$externalUniqueNumber}";
-
-        $metadata = array('status' => $status,
-                        'occ' => $occ,
-                        'externalUniqueNumber' => $externalUniqueNumber);
-
-        if ($status == null || $occ == null || $externalUniqueNumber == null) {
-            return $this->failCommit($orderStatusCancelled, 'Parametros inválidos', $detail, $metadata);
-        }
-
-        if ($status == 'PRE_AUTHORIZED') {
-
-            try {
-
-                $options = $this->getOnepayOptions();
-
-                $transactionCommitResponse = Transaction::commit($occ, $externalUniqueNumber, $options);
-
-                if ($transactionCommitResponse->getResponseCode() == 'OK') {
-
-                    $amount = $transactionCommitResponse->getAmount();
-                    $buyOrder = $transactionCommitResponse->getBuyOrder();
-                    $authorizationCode = $transactionCommitResponse->getAuthorizationCode();
-                    $description = $transactionCommitResponse->getDescription();
-                    $issuedAt = $transactionCommitResponse->getIssuedAt();
-                    $dateTransaction = date('Y-m-d H:i:s', $issuedAt);
-
-                    $detail = "<b>Detalles del pago con Onepay:</b>
-                                <br><b>Fecha de Transacci&oacute;n:</b> {$dateTransaction}
-                                <br><b>OCC:</b> {$occ}
-                                <br><b>N&uacute;mero de carro:</b> {$externalUniqueNumber}
-                                <br><b>C&oacute;digo de Autorizaci&oacute;n:</b> {$authorizationCode}
-                                <br><b>Orden de Compra:</b> {$buyOrder}
-                                <br><b>Estado:</b> {$description}
-                                <br><b>Monto de la Compra:</b> {$amount}";
-
-                    $installmentsNumber = $transactionCommitResponse->getInstallmentsNumber();
-
-                    if ($installmentsNumber == 1) {
-
-                        $detail = $detail . "<br><b>N&uacute;mero de cuotas:</b> Sin cuotas";
-
-                    } else {
-
-                        $installmentsAmount = $transactionCommitResponse->getInstallmentsAmount();
-
-                        $detail = $detail . "<br><b>N&uacute;mero de cuotas:</b> {$installmentsNumber}
-                                            <br><b>Monto cuota:</b> {$installmentsAmount}";
-                    }
-
-                    $metadata = array('orderStatusOriginal' => 'paid',
-                                    'orderStatus' => $orderStatusPaid,
-                                    'amount' => $amount,
-                                    'authorizationCode' => $authorizationCode,
-                                    'occ' => $occ,
-                                    'externalUniqueNumber' => $externalUniqueNumber,
-                                    'issuedAt' => $issuedAt);
-
-                    return $this->successCommit($orderStatusPaid, 'Pago exitoso', $detail, $metadata);
-                } else {
-                    return $this->failCommit($orderStatusFailed, 'Tu pago ha fallado. Vuelve a intentarlo más tarde.', $detail, $metadata);
-                }
-
-            } catch (TransbankException $transbankException) {
-                return $this->failCommit($orderStatusFailed, $transbankException->getMessage(), $detail, $metadata);
-            }
-
-        } else if($status == 'REJECTED') {
-            return $this->failCommit($orderStatusRejected, 'Tu pago ha fallado. Pago rechazado.', $detail, $metadata);
-        } else {
-            return $this->failCommit($orderStatusCancelled, 'Tu pago ha fallado. Compra cancelada.', $detail, $metadata);
-        }
-    }
-
-    private function successCommit($orderStatusId, $message, $detail, $metadata) {
-        $this->logDebug('Transacción confirmada: orderStatusId: ' . $orderStatusId . ', ' . json_encode($metadata));
-        return array('success' => true, 'orderStatusId' => $orderStatusId, 'message' => $message, 'detail' => $detail, 'metadata' => $metadata);
-    }
-
-    private function failCommit($orderStatusId, $message, $detail, $metadata) {
-        $this->logError('Transacción no confirmada: orderStatusId: ' . $orderStatusId . ', ' . json_encode($metadata));
-        return array('error' => true, 'orderStatusId' => $orderStatusId, 'message' => $message, 'detail' => $detail, 'metadata' => $metadata);
-    }
-
-    /**
-     * refund a transaction in onepay
-     */
-    public function refundTransaction() {
-        //not implemented
-    }
-
-    /**
      * create the diagnostic pdf
      */
-    public function createDiagnosticPdf() {
+    private function createDiagnosticPdf() {
 
         $pdf = new DiagnosticPDF($this);
 
@@ -408,9 +331,10 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         $pdf->addExtensionsInfo();
         $pdf->addLogs();
 
+        //Some tricks for FPDF to work with joomla.
+        ob_start(); //needed to prevent the error(FPDF error: Some data has already been output, can't send PDF file)
         $pdf->Output();
-
-        die();
+        die(); //needed to break process render of joomla and download the file pdf correctly
     }
 
     /**
