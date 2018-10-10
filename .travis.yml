@@ -1,0 +1,20 @@
+language: php
+php:
+- '5.5'
+
+script: echo "We don't have tests yet :("
+
+before_deploy:
+- sh config.sh
+- sh package.sh
+
+deploy:
+  provider: releases
+  name: "$TRAVIS_TAG"
+  api_key:
+    secure: FGGmFT120V3CzIT2sXawDafU8X+H9OljtEKCTAmmp8e1L+/9DqfmwZ0/4NWAvWvPEBW//FICSdp7w7mKbDKHOmA+cMFew+rOrvQgtgHqZUZDUQwiv5e4KT6/YZpSG91k/RP4kheP1HGR55a69Qko4sxPelKwu0+MD02yWfdX8Zd7PS2uQxwV/ntM9Bsp9hP+YhXStcwtoQfQ4JzMoMjpfNy5yNWNYAGfjJmdksboaPZvx6WquljRiETANfuI1hT9HpGQk4bti1hCzwm5xJqabJ9BRBBBG1G8pqnaEGhig9RrbNU9StpB2xAG7FvIY23OUzzZ2dpKug5HqUvBGtr3/3uy0OuS1hzmUghkDgqQf76Ji/qObHSWBsBSb8Szx/3h5iqAzuf859pahoAJu4tMoEZdX8pC6wblbs6IW/FVPliLFhA6YJiU59HMVKTSWEJ8NG7nQDq4udq5jYz2XwiFhEwO5NzcxqxKHvdVyBYySLFxp4OVipwjGvZbzJ9Bbf69MZ1zNYO9FquQbLby6iNAo17h0uZhje3Qq4043png4z0ImWLEb3pKk979Go89yp2T1zYGTxX2HIneZ0/u5Hasvg+5cfLoKRXdor5g4MHEBshekwNmQD4jOvaNyVRAn6PUfiH3oI14ZOwx4EXIcntj3+kUH7FaIhnt2gHariddy4s=
+  file: "plugin-transbank-onepay-virtuemart3-$TRAVIS_TAG.zip"
+  skip_cleanup: true
+  on:
+    repo: TransbankDevelopers/transbank-plugin-virtuemart-onepay
+    tags: true
