@@ -64,7 +64,10 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 		parent::__construct ($subject, $config);
 		$this->tableFields = array_keys($this->getTableSQLFields());
 		$this->_tablepkey = 'id';
-		$this->_tableId = 'id';
+        $this->_tableId = 'id';
+
+        $this->logInfo('table:'.$this->_tablename);
+
         if ($config['name'] == self::PLUGIN_CODE) {
 
             $varsToPush = $this->getVarsToPush();
@@ -93,23 +96,52 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
                 $this->createDiagnosticPdf();
             }
         }
+
+        try {
+            $this->logInfo('leyendo');
+            $db = JFactory::getDbo();
+            $query = 'SELECT * FROM ' . $this->_tablename;
+            $db->setQuery($query);
+            $values = $db->loadObjectList();
+            foreach ($values as $value) {
+                $this->logInfo($value);
+            }
+            $this->logInfo('leidos');
+        } catch (Exception $e) {
+            $this->logError($e);
+        }
     }
 
-    //Override
+    /**
+     * Create the table for this plugin if it does not yet exist.
+     *
+     * @return bool
+     * @Override
+     */
     function getVmPluginCreateTableSQL() {
-        return $this->createTableSQL('Payment Transbank Onepay Table');
+        $this->logInfo('Creando tabla: ' . $this->_tablename);
+        return $this->createTableSQL('Payment Transbank_Onepay Table');
     }
 
-    //Override
+    /**
+	 * Fields to create the payment table
+     *
+	 * @return string SQL fields
+     * @Override
+	 */
     function getTableSQLFields() {
         $SQLfields = array(
-            'id'                          => 'int(1) UNSIGNED NOT NULL AUTO_INCREMENT',
-			'virtuemart_order_id'         => 'int(1) UNSIGNED',
-			'order_number'                => 'char(64)',
+            'id' => 'int(1) UNSIGNED NOT NULL AUTO_INCREMENT',
+			'virtuemart_order_id' => 'int(1) UNSIGNED',
+			'order_number' => 'char(64)',
 			'virtuemart_paymentmethod_id' => 'mediumint(1) UNSIGNED',
-			'payment_name'                => 'varchar(5000)',
-			'payment_order_total'         => 'decimal(15,5) NOT NULL DEFAULT \'0.00000\'',
-			'payment_currency'            => 'char(3)',
+			'payment_name' => 'varchar(5000)',
+			'payment_order_total' => 'decimal(15,5) NOT NULL',
+			'payment_currency' => 'smallint(1)',
+			'email_currency' => 'smallint(1)',
+			'cost_per_transaction' => 'decimal(10,2)',
+			'cost_percent_total' => 'decimal(10,2)',
+			'tax_id' => 'smallint(1)',
             self::TRANSBANK_ONEPAY_ENVIRONMENT => 'varchar(10)',
             self::TRANSBANK_ONEPAY_APIKEY_TEST => 'varchar(100)',
             self::TRANSBANK_ONEPAY_SHARED_SECRET_TEST => 'varchar(100)',
@@ -125,7 +157,174 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $SQLfields;
     }
 
-    //Override
+    /**
+	 *
+	 * @param $cart
+	 * @param $order
+	 * @return bool|null|void
+	 */
+	function plgVmConfirmedOrder($cart, $order) {
+
+        $this->logInfo('plgVmConfirmedOrder');
+
+		if (!($this->_currentMethod = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id))) {
+			return NULL; // Another method was selected, do nothing
+		}
+		if (!$this->selectedThisElement($this->_currentMethod->payment_element)) {
+			return FALSE;
+        }
+
+        $this->logInfo ('plgVmConfirmedOrder order number: ' . $order['details']['BT']->order_number);
+
+        return false;
+    }
+
+    /**
+     * return true for show the Transbank Onepay payment method in cart screen
+     *
+     * @param $cart
+     * @param $method
+     * @param $cart_prices
+     * @Override
+     */
+    protected function checkConditions($cart, $method, $cart_prices) {
+        return true;
+    }
+
+	/**
+	 * Create the table for this plugin if it does not yet exist.
+	 * This functions checks if the called plugin is active one.
+	 * When yes it is calling the standard method to create the tables
+     *
+     * @param $jplugin_id
+	 * @Override
+	 */
+	function plgVmOnStoreInstallPaymentPluginTable($jplugin_id) {
+		return $this->onStoreInstallPluginTable($jplugin_id);
+	}
+
+	/**
+	 * This event is fired after the payment method has been selected. It can be used to store
+	 * additional payment info in the cart.
+     *
+	 * @param VirtueMartCart $cart: the actual cart
+     * @param $msg
+	 * @return null if the payment was not selected, true if the data is valid, error message if the data is not valid
+	 * @Override
+	 */
+	public function plgVmOnSelectCheckPayment(VirtueMartCart $cart,  &$msg) {
+		return $this->OnSelectCheck($cart);
+	}
+
+	/**
+	 * This event is fired to display the pluginmethods in the cart (edit shipment/payment) for exampel
+	 *
+	 * @param object  $cart Cart object
+	 * @param integer $selected ID of the method selected
+	 * @return boolean True on success, false on failures, null when this plugin was not selected.
+	 * On errors, JError::raiseWarning (or JError::raiseError) must be used to set a message.
+	 * @Override
+	 */
+	public function plgVmDisplayListFEPayment(VirtueMartCart $cart, $selected = 0, &$htmlIn) {
+		return $this->displayListFE($cart, $selected, $htmlIn);
+	}
+
+    /*
+     * Calculate the price (value, tax_id) of the selected method
+     * It is called by the calculator
+     * This function does NOT to be reimplemented. If not reimplemented, then the default values from this function are taken.
+     *
+     * @param VirtueMartCart $cart
+     * @param array          $cart_prices
+     * @param                $cart_prices_name
+     *
+     * @return
+     * @Override
+     */
+	public function plgVmonSelectedCalculatePricePayment(VirtueMartCart $cart, array &$cart_prices, &$cart_prices_name) {
+		return $this->onSelectedCalculatePrice($cart, $cart_prices, $cart_prices_name);
+	}
+
+    /**
+	 * @param $virtuemart_paymentmethod_id
+	 * @param $paymentCurrencyId
+	 * @return bool|null
+     * @Override
+	 */
+    function plgVmgetPaymentCurrency($virtuemart_paymentmethod_id, &$paymentCurrencyId) {
+
+		if (!($method = $this->getVmPluginMethod($virtuemart_paymentmethod_id))) {
+			return NULL;
+		} // Another method was selected, do nothing
+
+		if (!$this->selectedThisElement($method->payment_element)) {
+			return FALSE;
+		}
+
+		$this->getPaymentCurrency($method);
+		$paymentCurrencyId = $method->payment_currency;
+    }
+
+	/**
+	 * Checks how many plugins are available. If only one, the user will not have the choice. Enter edit_xxx page
+	 * The plugin must check first if it is the correct type
+	 *
+	 * @param VirtueMartCart cart: the cart object
+	 * @return null if no plugin was found, 0 if more then one plugin was found,  virtuemart_xxx_id if only one plugin is found
+	 * @Override
+	 */
+	function plgVmOnCheckAutomaticSelectedPayment(VirtueMartCart $cart, array $cart_prices = array(), &$paymentCounter) {
+		return $this->onCheckAutomaticSelected($cart, $cart_prices, $paymentCounter);
+    }
+
+	/**
+	 * This method is fired when showing the order details in the frontend.
+	 * It displays the method-specific data.
+	 *
+	 * @param integer $order_id The order ID
+	 * @return mixed Null for methods that aren't active, text (HTML) otherwise
+	 * @Override
+	 */
+	public function plgVmOnShowOrderFEPayment($virtuemart_order_id, $virtuemart_paymentmethod_id, &$payment_name) {
+		$this->onShowOrderFE($virtuemart_order_id, $virtuemart_paymentmethod_id, $payment_name);
+	}
+
+	/**
+	 * This event is fired during the checkout process. It can be used to validate the
+	 * method data as entered by the user.
+	 *
+	 * @return boolean True when the data was valid, false otherwise. If the plugin is not activated, it should return null.
+	 * @Override
+	 */
+    public function plgVmOnCheckoutCheckDataPayment (VirtueMartCart $cart) {
+		/*if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
+			return NULL; // Another method was selected, do nothing
+		}
+		if (!($this->_currentMethod = $this->getVmPluginMethod($cart->virtuemart_paymentmethod_id))) {
+			return NULL;
+		}
+        return true;*/
+        return null;
+	}
+
+	/**
+	 * This method is fired when showing when priting an Order
+	 * It displays the the payment method-specific data.
+	 *
+	 * @param integer $_virtuemart_order_id The order ID
+	 * @param integer $method_id  method used for this order
+	 * @return mixed Null when for payment methods that were not selected, text (HTML) otherwise
+	 * @Override
+	 */
+	function plgVmonShowOrderPrintPayment($order_number, $method_id) {
+		return $this->onShowOrderPrint($order_number, $method_id);
+    }
+
+    /**
+	 * @param $data
+	 * @return bool
+     * @Override
+	 */
     function plgVmDeclarePluginParamsPaymentVM3(&$data) {
         $ret = $this->declarePluginParams('payment', $data);
         if ($ret == 1) {
@@ -134,9 +333,25 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $ret;
     }
 
-    //Override
+    /**
+	 * @param $name
+	 * @param $id
+	 * @param $table
+	 * @return bool
+     * @Override
+	 */
 	function plgVmSetOnTablePluginParamsPayment($name, $id, &$table) {
 		return $this->setOnTablePluginParams($name, $id, $table);
+    }
+
+    function plgVmOnPaymentNotification() {
+        return null;
+    }
+
+    function plgVmOnPaymentResponseReceived(&$html) {
+        $cart = VirtueMartCart::getCart();
+		$cart->emptyCart();
+        return true;
     }
 
     //Helpers
@@ -303,6 +518,166 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         }
 
         return $options;
+    }
+
+    /**
+     * create a transaction in onepay
+     */
+    private function createTransaction($channel, $paymentMethod, $items) {
+
+        if ($channel == null) {
+            return $this->failCreate('Falta parámetro channel');
+        }
+
+        if ($paymentMethod != self::PLUGIN_CODE) {
+            return $this->failCreate('Método de pago no es Transbank Onepay');
+        }
+
+        try {
+
+            $options = $this->getOnepayOptions();
+
+            $cart = new ShoppingCart();
+
+            foreach($items as $qItem) {
+                $item = new Item($qItem['name'], intval($qItem['quantity']), intval($qItem['price']));
+                $cart->add($item);
+            }
+
+            $transaction = Transaction::create($cart, $channel, $options);
+
+            $amount = $cart->getTotal();
+            $occ = $transaction->getOcc();
+            $ott = $transaction->getOtt();
+            $externalUniqueNumber = $transaction->getExternalUniqueNumber();
+            $issuedAt = $transaction->getIssuedAt();
+
+            $response = array(
+                'amount' => $amount,
+                'occ' => $occ,
+                'ott' => $ott,
+                'externalUniqueNumber' => $externalUniqueNumber,
+                'issuedAt' => $issuedAt,
+                'qrCodeAsBase64' => $transaction->getQrCodeAsBase64()
+            );
+
+            $this->logDebug('Transacción creada: ' . json_encode($response));
+
+            return $response;
+
+        } catch (TransbankException $transbankException) {
+            return $this->failCreate($transbankException->getMessage());
+        }
+    }
+
+    private function failCreate($message) {
+        $this->logError('Transacción fallida: ' . $message);
+        return array('error' => true, 'message' => $message);
+    }
+
+    /**
+     * commit a transaction in onepay
+     */
+    private function commitTransaction($status, $occ, $externalUniqueNumber) {
+
+        $options = $this->getOnepayOptions();
+
+        $orderStatusPaid = $this->getOrderStatusIdPaid();
+        $orderStatusFailed = $this->getOrderStatusIdFailed();
+        $orderStatusRejected = $this->getOrderStatusIdRejected();
+        $orderStatusCancelled = $this->getOrderStatusIdCancelled();
+
+        $detail = "<b>Estado:</b> {$status}
+                <br><b>OCC:</b> {$occ}
+                <br><b>N&uacute;mero de carro:</b> {$externalUniqueNumber}";
+
+        $metadata = array('status' => $status,
+                        'occ' => $occ,
+                        'externalUniqueNumber' => $externalUniqueNumber);
+
+        if ($status == null || $occ == null || $externalUniqueNumber == null) {
+            return $this->failCommit($orderStatusCancelled, 'Parametros inválidos', $detail, $metadata);
+        }
+
+        if ($status == 'PRE_AUTHORIZED') {
+
+            try {
+
+                $options = $this->getOnepayOptions();
+
+                $transactionCommitResponse = Transaction::commit($occ, $externalUniqueNumber, $options);
+
+                if ($transactionCommitResponse->getResponseCode() == 'OK') {
+
+                    $amount = $transactionCommitResponse->getAmount();
+                    $buyOrder = $transactionCommitResponse->getBuyOrder();
+                    $authorizationCode = $transactionCommitResponse->getAuthorizationCode();
+                    $description = $transactionCommitResponse->getDescription();
+                    $issuedAt = $transactionCommitResponse->getIssuedAt();
+                    $dateTransaction = date('Y-m-d H:i:s', $issuedAt);
+
+                    $detail = "<b>Detalles del pago con Onepay:</b>
+                                <br><b>Fecha de Transacci&oacute;n:</b> {$dateTransaction}
+                                <br><b>OCC:</b> {$occ}
+                                <br><b>N&uacute;mero de carro:</b> {$externalUniqueNumber}
+                                <br><b>C&oacute;digo de Autorizaci&oacute;n:</b> {$authorizationCode}
+                                <br><b>Orden de Compra:</b> {$buyOrder}
+                                <br><b>Estado:</b> {$description}
+                                <br><b>Monto de la Compra:</b> {$amount}";
+
+                    $installmentsNumber = $transactionCommitResponse->getInstallmentsNumber();
+
+                    if ($installmentsNumber == 1) {
+
+                        $detail = $detail . "<br><b>N&uacute;mero de cuotas:</b> Sin cuotas";
+
+                    } else {
+
+                        $installmentsAmount = $transactionCommitResponse->getInstallmentsAmount();
+
+                        $detail = $detail . "<br><b>N&uacute;mero de cuotas:</b> {$installmentsNumber}
+                                            <br><b>Monto cuota:</b> {$installmentsAmount}";
+                    }
+
+                    $metadata = array('orderStatusOriginal' => 'paid',
+                                    'orderStatus' => $orderStatusPaid,
+                                    'amount' => $amount,
+                                    'authorizationCode' => $authorizationCode,
+                                    'occ' => $occ,
+                                    'externalUniqueNumber' => $externalUniqueNumber,
+                                    'issuedAt' => $issuedAt);
+
+                    return $this->successCommit($orderStatusPaid, 'Pago exitoso', $detail, $metadata);
+                } else {
+                    return $this->failCommit($orderStatusFailed, 'Tu pago ha fallado. Vuelve a intentarlo más tarde.', $detail, $metadata);
+                }
+
+            } catch (TransbankException $transbankException) {
+                return $this->failCommit($orderStatusFailed, $transbankException->getMessage(), $detail, $metadata);
+            }
+
+        } else if($status == 'REJECTED') {
+            return $this->failCommit($orderStatusRejected, 'Tu pago ha fallado. Pago rechazado.', $detail, $metadata);
+        } else {
+            return $this->failCommit($orderStatusCancelled, 'Tu pago ha fallado. Compra cancelada.', $detail, $metadata);
+        }
+    }
+
+    private function successCommit($orderStatusId, $message, $detail, $metadata) {
+        $this->logDebug('Transacción confirmada: orderStatusId: ' . $orderStatusId . ', ' . json_encode($metadata));
+        return array('success' => true, 'orderStatusId' => $orderStatusId, 'message' => $message, 'detail' => $detail, 'metadata' => $metadata);
+    }
+
+    private function failCommit($orderStatusId, $message, $detail, $metadata) {
+        $this->logError('Transacción no confirmada: orderStatusId: ' . $orderStatusId . ', ' . json_encode($metadata));
+        return array('error' => true, 'orderStatusId' => $orderStatusId, 'message' => $message, 'detail' => $detail, 'metadata' => $metadata);
+    }
+
+    /**
+     * refund a transaction in onepay
+     */
+    private function refundTransaction() {
+        //not implemented
     }
 
     /**
