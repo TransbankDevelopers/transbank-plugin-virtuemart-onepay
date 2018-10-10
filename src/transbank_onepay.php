@@ -37,8 +37,8 @@ use \Transbank\Onepay\Exceptions\RefundCreateException;
 class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 
     const PLUGIN_VERSION = '1.0.0'; //version of plugin payment
-    const PLUGIN_CODE = 'transbank_onepay'; //code of plugin for opencart
-    const APP_KEY = 'D2044F06-B8AA-4653-8409-2571C2A9E273'; //app key for opencart
+    const PLUGIN_CODE = 'transbank_onepay'; //code of plugin for virtuemart
+    const APP_KEY = 'D2044F06-B8AA-4653-8409-2571C2A9E273'; //app key for virtuemart
 
     //constants for log handler
     const LOG_FILENAME = 'onepay-log'; //name of the log file
