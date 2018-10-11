@@ -67,6 +67,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 		$this->tableFields = array_keys($this->getTableSQLFields());
 		$this->_tablepkey = 'id';
         $this->_tableId = 'id';
+
         if ($config['name'] == self::PLUGIN_CODE) {
 
             $varsToPush = $this->getVarsToPush();
@@ -95,22 +96,6 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
                 $this->createDiagnosticPdf();
             }
         }
-
-        /*
-        try {
-            $this->logInfo('leyendo');
-            $db = JFactory::getDbo();
-            $query = 'SELECT `virtuemart_order_id` FROM ' . $this->_tablename;
-            $db->setQuery($query);
-            $values = $db->loadObjectList();
-            $this->logInfo('val: '.json_encode($values));
-            foreach ($values as $value) {
-                $this->logInfo($value);
-            }
-            $this->logInfo('leidos');
-        } catch (Exception $e) {
-            $this->logError($e);
-        }*/
     }
 
     /**
@@ -120,7 +105,6 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
      * @Override
      */
     function getVmPluginCreateTableSQL() {
-        $this->logInfo('Creando tabla: ' . $this->_tablename);
         return $this->createTableSQL('Payment Transbank_Onepay Table');
     }
 
@@ -158,18 +142,6 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return $SQLfields;
     }
 
-    //https://webkul.com/blog/understanding-flow-of-virtuemart-payment-plugin/
-
-    /*
-    protected function getPluginHtml($method, $selectedPlugin, $pluginSalesPrice) {
-        return '<b>AAAAAAA</b>';
-    }*/
-
-    /*
-    function plgVmOnSelfCallFE($type, $name, &$render) {
-        $this->logInfo('plgVmOnSelfCallFE');
-    }*/
-
     /**
 	 * This event is fired during the checkout process. It can be used to validate the
 	 * method data as entered by the user.
@@ -178,16 +150,18 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 	 * @Override
 	 */
     public function plgVmOnCheckoutCheckDataPayment(VirtueMartCart $cart) {
-        //$this->logInfo('plgVmOnCheckoutCheckDataPayment');
+
 		if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
 			return NULL; // Another method was selected, do nothing
 		}
 		if (!($this->_currentMethod = $this->getVmPluginMethod($cart->virtuemart_paymentmethod_id))) {
 			return NULL;
         }
-        $onepayAction = vRequest::getCmd('onepayAction');
+
+        $session = JFactory::getSession();
+        $onepayAction = $session->get('onepayAction');
         if ($onepayAction == 'show' || $onepayAction == NULL) {
-            $this->logInfo('loading js sdk');
+            $this->logInfo('Load JS-sdk');
             $jsSdk = self::JS_SDK;
             $jsScript = "<script type='text/javascript' src='{$jsSdk}'></script>";
             echo($jsScript);
@@ -195,7 +169,14 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         return true;
 	}
 
-    function plgVmOnCheckoutAdvertise($cart, &$payment_advertise) {
+    function plgVmOnCheckoutAdvertise(VirtueMartCart $cart, &$payment_advertise) {
+
+        if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
+			return NULL; // Another method was selected, do nothing
+		}
+		if (!($this->_currentMethod = $this->getVmPluginMethod($cart->virtuemart_paymentmethod_id))) {
+			return NULL;
+        }
 
         $session = JFactory::getSession();
         $onepayAction = $session->get('onepayAction');
@@ -250,13 +231,39 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
                 die;
 
             } else if ($onepayAction == 'commit') {
-                $session->set('onepayAction', 'commit');
-                $jsScript = "<script type='text/javascript'>
+
+                $status = vRequest::getCmd('status');
+                $occ = vRequest::getCmd('occ');
+                $externalUniqueNumber = vRequest::getCmd('externalUniqueNumber');
+
+                $response = $this->commitTransaction($status, $occ, $externalUniqueNumber);
+
+                $message = $response['message'];
+                $detail = $response['detail'];
+                $metadata = json_encode($response['metadata']);
+
+                $this->logInfo(json_encode($response));
+
+                if (isset($response['error'])) {
+
+                    $session->set('onepayAction', 'error');
+                    $app = JFactory::getApplication();
+                    $app->enqueueMessage($message, 'error');
+                    $app->redirect('index.php?option=com_virtuemart&view=cart');
+                    die;
+
+                } else {
+
+                    $session->set('onepayAction', 'success');
+                    $session->set('onepaySuccessDetail', $detail);
+
+                    $jsScript = "<script type='text/javascript'>
                         jQuery(document).ready(function($) {
                             jQuery('#checkoutFormSubmit').click();
                         });
-                    </script>";
-                echo($jsScript);
+                        </script>";
+                    echo($jsScript);
+                }
             }
         }
     }
@@ -267,19 +274,16 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 	 * @param $order
 	 * @return bool|null|void
 	 */
-	function plgVmConfirmedOrder($cart, $order) {
+	function plgVmConfirmedOrder(VirtueMartCart $cart, $order) {
 
-		if (!($this->_currentMethod = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id))) {
+        if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
 			return NULL; // Another method was selected, do nothing
 		}
-		if (!$this->selectedThisElement($this->_currentMethod->payment_element)) {
-			return FALSE;
+		if (!($this->_currentMethod = $this->getVmPluginMethod($cart->virtuemart_paymentmethod_id))) {
+			return NULL;
         }
 
         //$this->logInfo ('plgVmConfirmedOrder order number: ' . $order['details']['BT']->order_number);
-
-        //$html = "<span><b>HOLA</b></span>";
-        //vRequest::setVar('html', $html);
 
         $session = JFactory::getSession();
 
@@ -287,18 +291,34 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 
         $this->logInfo('plgVmConfirmedOrder sesion onepayAction: ' . $onepayAction);
 
-        if ($onepayAction == 'commit') {
+        if ($onepayAction == 'success') {
 
-            $session->set('onepayAction', '');
+            $session->clear('onepayAction');
 
-            $cart = VirtueMartCart::getCart();
-		    $cart->emptyCart();
+            $onepaySuccessDetail = $session->get('onepaySuccessDetail');
+
+            $htmlSuccess = "
+            <div id='system-message-container'>
+                <dl id='system-message'>
+                    <dd class='success message'>
+                        <ul>
+                            <li>{$onepaySuccessDetail}</li>
+                        </ul>
+                    </dd>
+                </dl>
+            </div>";
+
+            vRequest::setVar('html', $htmlSuccess);
+
+            //$cart = VirtueMartCart::getCart();
+		    //$cart->emptyCart();
 
             return true;
         } else {
             $session->set('onepayAction', 'show');
             $app = JFactory::getApplication();
-            $app->redirect('index.php?option=com_virtuemart&view=cart', 'Esperando por Transbank Onepay');
+            $app->enqueueMessage('Esperando por Transbank Onepay', 'success');
+            $app->redirect('index.php?option=com_virtuemart&view=cart');
             die;
         }
     }
@@ -311,8 +331,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
      * @param $cart_prices
      * @Override
      */
-    protected function checkConditions($cart, $method, $cart_prices) {
-        //$this->logInfo(json_encode($cart_prices));
+    protected function checkConditions(VirtueMartCart $cart, $method, $cart_prices) {
         if (intval($cart_prices['salesPrice']) > 0) {
             return true;
         }
@@ -433,7 +452,6 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 	 * @Override
 	 */
 	function plgVmonShowOrderPrintPayment($order_number, $method_id) {
-        $this->logInfo('plgVmonShowOrderPrintPayment');
 		return $this->onShowOrderPrint($order_number, $method_id);
     }
 
@@ -458,14 +476,13 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
      * @Override
 	 */
 	function plgVmSetOnTablePluginParamsPayment($name, $id, &$table) {
-        $this->logInfo('plgVmSetOnTablePluginParamsPayment');
 		return $this->setOnTablePluginParams($name, $id, $table);
     }
-
+    /*
     function plgVmOnPaymentNotification() {
         $this->logInfo('plgVmOnPaymentNotification');
         return null;
-    }
+    }*/
 
     function plgVmOnPaymentResponseReceived(&$html) {
         $this->logInfo('plgVmOnPaymentResponseReceived');
