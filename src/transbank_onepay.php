@@ -169,7 +169,8 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $order_pass = $dataTransbankOnepay['order_pass'];
             $link = JRoute::_('index.php?option=com_virtuemart&view=orders&layout=details&order_number=' . $order_number . '&order_pass=' . $order_pass, false) ;
             $detail = $session->get('detail');
-            $html = $detail . '<br/><br/><a class="vm-button-correct" href="'.$link.'">'.vmText::_('COM_VIRTUEMART_ORDER_VIEW_ORDER').'</a>';
+            //COM_VIRTUEMART_ORDER_VIEW_ORDER
+            $html = $detail . '<br/><br/><a class="vm-button-correct" href="'.$link.'">'.vmText::_('View your order').'</a>';
             $this->getCurrentCart()->emptyCart();
         }
     }
