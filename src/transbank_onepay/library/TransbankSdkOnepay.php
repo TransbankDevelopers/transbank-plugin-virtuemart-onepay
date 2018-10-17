@@ -30,7 +30,7 @@ class TransbankSdkOnepay {
     //constants for log handler
     const LOG_FILENAME = 'onepay-log'; //name of the log file
     const LOG_DEBUG_ENABLED = false; //enable or disable debug logs
-    const LOG_INFO_ENABLED = true; //enable or disable info logs
+    const LOG_INFO_ENABLED = false; //enable or disable info logs
     const LOG_ERROR_ENABLED = true; //enable or disable error logs
 
     //constants for keys configurations

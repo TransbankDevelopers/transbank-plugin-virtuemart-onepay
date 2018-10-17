@@ -419,7 +419,6 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $urlLogo = $this->transbankSdkOnepay->getLogoUrl();
             $urlLogo = $urlLogo != NULL ? $urlLogo : '';
 
-            $this->logInfo('Load JS-sdk');
             $jsSdk = TransbankSdkOnepay::JS_SDK;
             $jsScript =
             "<script type='text/javascript'>
