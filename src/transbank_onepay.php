@@ -40,7 +40,8 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     const PLUGIN_CODE = 'transbank_onepay'; //code of plugin for virtuemart
     const APP_KEY = 'D2044F06-B8AA-4653-8409-2571C2A9E273'; //app key for virtuemart
 
-    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.4/lib/merchant.onepay.min.js';
+    //url of the js sdk
+    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.5/lib/merchant.onepay.min.js';
 
     //constants for log handler
     const LOG_FILENAME = 'onepay-log'; //name of the log file
@@ -98,7 +99,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
                 $this->createDiagnosticPdf();
             }
 
-            $this->loadOrShowSdk($this->getCart());
+            $this->loadOrShowSdk($this->getCurrentCart());
         }
     }
 
@@ -147,79 +148,24 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     }
 
     /**
-     * load or show js sdk
+     * handle the actions of payments process
+     * @Override
      */
-    private function loadOrShowSdk(VirtueMartCart $cart) {
-
-        if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
-			return NULL; // Another method was selected, do nothing
-		}
-
-        $session = JFactory::getSession();
-        $onepayAction = $session->get('onepayAction');
-
-        if ($onepayAction == 'show') {
-
-            $session->clear('onepayAction');
-
-            $urlCreate = self::BASE_URL_ACTIONS . '&action=create&cid=' . $cart->virtuemart_paymentmethod_id;
-            $urlCommit = self::BASE_URL_ACTIONS . '&action=commit&cid=' . $cart->virtuemart_paymentmethod_id;
-            $urlLogo = $this->getLogoUrl();
-            $urlLogo = $urlLogo != NULL ? $urlLogo : '';
-
-            $this->logInfo('Load JS-sdk');
-            $jsSdk = self::JS_SDK;
-            $jsScript =
-            "<script type='text/javascript'>
-                (function (o, n, e, p, a, y) {
-                    var s = n.createElement(p);
-                    s.type = 'text/javascript';
-                    s.src = e;
-                    s.onload = s.onreadystatechange = function () {
-                        if (!o && (!s.readyState
-                            || s.readyState === 'loaded')) {
-                            y();
-                        }
-                    };
-                    var t = n.getElementsByTagName('script')[0];
-                    p = t.parentNode;
-                    p.insertBefore(s, t);
-                })(false, document, '{$jsSdk}',
-                'script',window, function () {
-
-                    var options = {
-                        endpoint: '{$urlCreate}',
-                        commerceLogo: '{$urlLogo}',
-                        callbackUrl: '{$urlCommit}'
-                    };
-                    Onepay.checkout(options);
-                });
-            </script>";
-            echo($jsScript);
-        }
-    }
-
     function plgVmOnPaymentResponseReceived(&$html) {
 
         $session = JFactory::getSession();
         $orderId = $session->get('orderId');
+        $orderNumber = $session->get('orderNumber');
         $orderPass = $session->get('orderPass');
-        $cart = $this->getCart();
-
-        $this->logInfo('orderId: ' . $orderId);
-
         $action = vRequest::getCmd('action');
+
+        $modelOrder = $this->getModelOrder();
+        $order = $modelOrder->getOrder($orderId);
 
         if ($action == 'create') {
 
             $channel = vRequest::getCmd('channel');
-            $items = array();
-
-            $items[] = array(
-                'name' => 'Prueba',
-                'quantity' => 1,
-                'price' => 100,
-            );
+            $items = $session->get('items');
 
             $response = $this->createTransaction($channel, self::PLUGIN_CODE, $items);
 
@@ -238,31 +184,36 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $message = $response['message'];
             $detail = $response['detail'];
             $metadata = json_encode($response['metadata']);
+            $orderStatusId = $response['orderStatusId'];
+            $orderComment = $message . '<hr>' . $detail;
+            $orderNotifyToUser = true;
+
+            $order['order_status'] = $orderStatusId;
+            $order['customer_notified'] = $orderNotifyToUser;
+            $order['comments'] = $orderComment;
+
+            $this->logInfo('order id: ' . $orderId . ', status: ' . $orderStatusId);
+            $modelOrder->updateStatusForOneOrder($orderId, $order, true);
+
+            $app = JFactory::getApplication();
 
             if (isset($response['error'])) {
-                $app = JFactory::getApplication();
                 $app->enqueueMessage($message, 'error');
                 $app->redirect('index.php?option=com_virtuemart&view=cart');
                 die;
             } else {
                 $session->set('detail', $detail);
-                $app = JFactory::getApplication();
-                $app->redirect('index.php?option=com_virtuemart&view=pluginresponse&task=pluginresponsereceived&action=result&tid=' . microtime());
+                $app->redirect(self::BASE_URL_ACTIONS . '&action=result&tid=' . microtime());
                 die;
             }
 
         } else if ($action == 'result') {
-            if (!class_exists ('shopFunctionsF')) {
-                require(VMPATH_SITE . DS . 'helpers' . DS . 'shopfunctionsf.php');
-            }
-
+            VmConfig::loadConfig();
             VmConfig::loadJLang('com_virtuemart');
+            $link = JRoute::_('index.php?option=com_virtuemart&view=orders&layout=details&order_number=' . $orderNumber . '&order_pass=' . $orderPass, false) ;
             $detail = $session->get('detail');
-            $html = $detail;
-            $link = JRoute::_("index.php?option=com_virtuemart&view=orders&layout=details&order_number=".$orderId."&order_pass=".$orderPass, false) ;
-            //'COM_VIRTUEMART_ORDER_VIEW_ORDER'
-            $html.= '<br/><br/><a class="vm-button-correct" href="'.$link.'">'.vmText::_('COM_VIRTUEMART_ORDER_VIEW_ORDER').'</a>';
-            //$cart->emptyCart();
+            $html = $detail . '<br/><br/><a class="vm-button-correct" href="'.$link.'">'.vmText::_('COM_VIRTUEMART_ORDER_VIEW_ORDER').'</a>';
+            $this->getCurrentCart()->emptyCart();
         }
     }
 
@@ -283,13 +234,38 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 
         $session = JFactory::getSession();
         $onepayAction = $session->get('onepayAction');
-        $orderId = $order['details']['BT']->order_number;
+        $orderId = $order['details']['BT']->virtuemart_order_id;
+        $orderNumber = $order['details']['BT']->order_number;
         $orderPass = $order['details']['BT']->order_pass;
+        $items = array();
 
-        $this->logInfo('plgVmConfirmedOrder onepayAction: ' . $onepayAction . ', orderId: ' . $orderId . ', orderPass: ' . $orderPass);
+        foreach ($cart->products as $pkey => $product) {
+            $items[] = array(
+                'name' => htmlspecialchars($product->product_name),
+                'quantity' => $product->quantity,
+                'price' => !empty($product->prices['basePriceWithTax']) ? $product->prices['basePriceWithTax'] :
+                                                                            $product->prices['basePriceVariant']
+            );
+        }
+
+        $shippingAmount = 0;
+
+        if (isset($cart->cartPrices) && isset($cart->cartPrices['salesPriceShipment'])) {
+            $shippingAmount = $cart->cartPrices['salesPriceShipment'];
+        }
+
+        if ($shippingAmount != 0) {
+            $items[] = array(
+                'name' => 'Costo por envio',
+                'price' => $shippingAmount,
+                'quantity' => 1
+            );
+        }
 
         $session->set('onepayAction', 'show');
+        $session->set('items', $items);
         $session->set('orderId', $orderId);
+        $session->set('orderNumber', $orderNumber);
         $session->set('orderPass', $orderPass);
         $app = JFactory::getApplication();
         $app->redirect('index.php?option=com_virtuemart&view=cart');
@@ -448,9 +424,62 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     //Helpers
 
     /**
-     * return current cart
+     * load or show js sdk
      */
-    private function getCart() {
+    private function loadOrShowSdk(VirtueMartCart $cart) {
+
+        if (!$this->selectedThisByMethodId($cart->virtuemart_paymentmethod_id)) {
+			return NULL; // Another method was selected, do nothing
+        }
+
+        $session = JFactory::getSession();
+        $onepayAction = $session->get('onepayAction');
+
+        if ($onepayAction == 'show') {
+
+            $session->clear('onepayAction');
+
+            $urlCreate = self::BASE_URL_ACTIONS . '&action=create&cid=' . $cart->virtuemart_paymentmethod_id;
+            $urlCommit = self::BASE_URL_ACTIONS . '&action=commit&cid=' . $cart->virtuemart_paymentmethod_id;
+            $urlLogo = $this->getLogoUrl();
+            $urlLogo = $urlLogo != NULL ? $urlLogo : '';
+
+            $this->logInfo('Load JS-sdk');
+            $jsSdk = self::JS_SDK;
+            $jsScript =
+            "<script type='text/javascript'>
+                (function (o, n, e, p, a, y) {
+                    var s = n.createElement(p);
+                    s.type = 'text/javascript';
+                    s.src = e;
+                    s.onload = s.onreadystatechange = function () {
+                        if (!o && (!s.readyState
+                            || s.readyState === 'loaded')) {
+                            y();
+                        }
+                    };
+                    var t = n.getElementsByTagName('script')[0];
+                    p = t.parentNode;
+                    p.insertBefore(s, t);
+                })(false, document, '{$jsSdk}',
+                'script',window, function () {
+
+                    var options = {
+                        endpoint: '{$urlCreate}',
+                        commerceLogo: '{$urlLogo}',
+                        callbackUrl: '{$urlCommit}'
+                    };
+                    Onepay.checkout(options);
+                });
+            </script>";
+            echo($jsScript);
+        }
+    }
+
+    /**
+     * return the current cart
+     */
+    private function getCurrentCart() {
         if (!class_exists('VirtueMartCart')) {
             require(JPATH_VM_SITE . DS . 'helpers' . DS . 'cart.php');
         }
@@ -458,10 +487,30 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     }
 
     /**
+     * return the model orders
+     */
+    private function getModelOrder() {
+        if (!class_exists('VirtueMartModelOrders')) {
+            require(JPATH_VM_ADMINISTRATOR . DS . 'models' . DS . 'orders.php');
+        }
+        return new VirtueMartModelOrders();
+    }
+
+    /**
      * return array os order status with id and name fields
+     *
+     *  order_status_code, order_status_name
+     *  'P', 'COM_VIRTUEMART_ORDER_STATUS_PENDING'
+     *  'U', 'COM_VIRTUEMART_ORDER_STATUS_CONFIRMED_BY_SHOPPER'
+     *  'C', 'COM_VIRTUEMART_ORDER_STATUS_CONFIRMED'
+     *  'X', 'COM_VIRTUEMART_ORDER_STATUS_CANCELLED'
+     *  'R', 'COM_VIRTUEMART_ORDER_STATUS_REFUNDED'
+     *  'S', 'COM_VIRTUEMART_ORDER_STATUS_SHIPPED'
+     *  'F', 'COM_VIRTUEMART_ORDER_STATUS_COMPLETED'
+     *  'D', 'COM_VIRTUEMART_ORDER_STATUS_DENIED'
      */
     private function getOrderStatuses() {
-        $options = array();
+        $orderStatuses = array();
 		$db = JFactory::getDbo();
 		$query = 'SELECT `order_status_code` AS value, `order_status_name` AS text
                  FROM `#__virtuemart_orderstates`
@@ -474,9 +523,9 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $name = $value->text;
             $index = strrpos($name, "_");
             $name = substr($name, $index + 1, strlen($name));
-            $options[] = array('id' => $id, 'name' => $name);
+            $orderStatuses[] = array('id' => $id, 'name' => $name);
         }
-        return $options;
+        return $orderStatuses;
     }
 
     /**
