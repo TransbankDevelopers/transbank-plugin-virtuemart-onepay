@@ -41,7 +41,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
     const APP_KEY = 'D2044F06-B8AA-4653-8409-2571C2A9E273'; //app key for virtuemart
 
     //url of the js sdk
-    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.5/lib/merchant.onepay.min.js';
+    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.4/lib/merchant.onepay.min.js';
 
     //constants for log handler
     const LOG_FILENAME = 'onepay-log'; //name of the log file
@@ -131,18 +131,7 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
 			'email_currency' => 'smallint(1)',
 			'cost_per_transaction' => 'decimal(10,2)',
 			'cost_percent_total' => 'decimal(10,2)',
-			'tax_id' => 'smallint(1)',
-            self::TRANSBANK_ONEPAY_ENVIRONMENT => 'varchar(10)',
-            self::TRANSBANK_ONEPAY_APIKEY_TEST => 'varchar(100)',
-            self::TRANSBANK_ONEPAY_SHARED_SECRET_TEST => 'varchar(100)',
-            self::TRANSBANK_ONEPAY_APIKEY_LIVE => 'varchar(100)',
-            self::TRANSBANK_ONEPAY_SHARED_SECRET_LIVE => 'varchar(100)',
-            self::TRANSBANK_ONEPAY_LOGO_URL => 'varchar(500)',
-            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_PAID => 'varchar(10)',
-            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_FAILED => 'varchar(10)',
-            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_REJECTED => 'varchar(10)',
-            self::TRANSBANK_ONEPAY_ORDER_STATUS_ID_CANCELLED => 'varchar(10)',
-            self::TRANSBANK_ONEPAY_ORDER_STATUS_CONFIGURED => 'varchar(100)'
+			'tax_id' => 'smallint(1)'
         );
         return $SQLfields;
     }
