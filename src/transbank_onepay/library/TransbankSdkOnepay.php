@@ -350,5 +350,12 @@ class TransbankSdkOnepay {
     public function logError($msg) {
         $this->config->logError($msg, 'error', true);
     }
+
+    /**
+     * print cart in log file
+     */
+    public function showCart($cart) {
+        $this->logInfo('carro: ' . str_replace('"', "'", json_encode($cart)));
+    }
 }
 ?>

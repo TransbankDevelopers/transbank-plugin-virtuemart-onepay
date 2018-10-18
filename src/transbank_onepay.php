@@ -211,6 +211,15 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         foreach ($cart->products as $pkey => $product) {
             $price = round(!empty($product->prices['basePriceWithTax']) ? $product->prices['basePriceWithTax'] :
                                                                             $product->prices['basePriceVariant']);
+
+            $discount = abs($product->prices['discountAmount']);
+
+            if ($discount > 0) {
+                //TODO implement a best calculate of price with discount when the discount is a float value
+                //$this->logInfo($price . ', desc: ' . $discount . ', amount/desc: ' . ($price-$discount) . ', amount/desc: ' . round($price-$discount));
+                $price = round($price - $discount);
+            }
+
             $items[] = array(
                 'name' => htmlspecialchars($product->product_name),
                 'quantity' => $product->quantity,
