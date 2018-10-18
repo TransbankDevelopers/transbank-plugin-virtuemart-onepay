@@ -10,6 +10,10 @@ if (!class_exists('vmPSPlugin')) {
 	require(VMPATH_PLUGINLIBS . DS . 'vmpsplugin.php');
 }
 
+if (!class_exists('ShopFunctions')) {
+    require(JPATH_VM_ADMINISTRATOR . DS . 'helpers' . DS . 'shopfunctions.php');
+}
+
 defined ('DIR_SYSTEM') or define ('DIR_SYSTEM', VMPATH_PLUGINS . '/vmpayment/transbank_onepay/transbank_onepay/');
 
 if (!class_exists('TransbankSdkOnepay')) {
@@ -205,18 +209,23 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
         $items = array();
 
         foreach ($cart->products as $pkey => $product) {
+            $price = round(!empty($product->prices['basePriceWithTax']) ? $product->prices['basePriceWithTax'] :
+                                                                            $product->prices['basePriceVariant']);
             $items[] = array(
                 'name' => htmlspecialchars($product->product_name),
                 'quantity' => $product->quantity,
-                'price' => !empty($product->prices['basePriceWithTax']) ? $product->prices['basePriceWithTax'] :
-                                                                            $product->prices['basePriceVariant']
+                'price' => $price
             );
         }
 
         $shippingAmount = 0;
 
-        if (isset($cart->cartPrices) && isset($cart->cartPrices['salesPriceShipment'])) {
-            $shippingAmount = $cart->cartPrices['salesPriceShipment'];
+        if (isset($cart->cartPrices)) {
+            if (isset($cart->cartPrices['salesPriceShipment'])) {
+                $shippingAmount = round($cart->cartPrices['salesPriceShipment']);
+            } else if (isset($cart->cartPrices['shipmentValue'])) {
+                $shippingAmount = round($cart->cartPrices['shipmentValue']);
+            }
         }
 
         if ($shippingAmount != 0) {
@@ -246,8 +255,13 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
      * @Override
      */
     protected function checkConditions(VirtueMartCart $cart, $method, $cart_prices) {
-        if (intval($cart_prices['salesPrice']) > 0) {
-            return true;
+        //enable transbank onepay only for Chile and salesPrice > 0
+        $salesPrice = round($cart_prices['salesPrice']);
+        if ($salesPrice > 0 && $cart->pricesCurrency == $method->currency_id) {
+            $currency = ShopFunctions::getCurrencyByID($cart->pricesCurrency, 'currency_code_3');
+            if ($currency == 'CLP') {
+                return true;
+            }
         }
         return false;
     }
