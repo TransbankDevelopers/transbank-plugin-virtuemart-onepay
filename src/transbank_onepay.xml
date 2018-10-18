@@ -14,6 +14,7 @@
     <vmconfig>
         <fields name="params">
             <fieldset name="basic" addfieldpath="/plugins/vmpayment/transbank_onepay/transbank_onepay/fields">
+                <field type="OnepayLogo"/>
                 <field name="transbank_onepay_environment" type="list" default="TEST" label="VMPAYMENT_TRANSBANK_ONEPAY_ENVIRONMENT" required="true">
                     <option value="TEST">INTEGRACIÓN</option>
                     <option value="LIVE">PRODUCCIÓN</option>
@@ -24,7 +25,7 @@
                 <field name="transbank_onepay_shared_secret_live" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_SHARED_SECRET_LIVE" size="50" required="true"/>
                 <field name="transbank_onepay_logo_url" type="text" label="VMPAYMENT_TRANSBANK_ONEPAY_LOGO_URL" size="50" />
                 <field type="vmtitle" description="" default="VMPAYMENT_TRANSBANK_ONEPAY_ORDERS_STATUS" />
-                <field name="transbank_onepay_order_status_id_paid" type="vmorderstate" scope="com_virtuemart" default="P" label="VMPAYMENT_TRANSBANK_ONEPAY_ORDER_STATUS_PAID" />
+                <field name="transbank_onepay_order_status_id_paid" type="vmorderstate" scope="com_virtuemart" default="U" label="VMPAYMENT_TRANSBANK_ONEPAY_ORDER_STATUS_PAID" />
                 <field name="transbank_onepay_order_status_id_failed" type="vmorderstate" scope="com_virtuemart" default="X" label="VMPAYMENT_TRANSBANK_ONEPAY_ORDER_STATUS_FAILED" />
                 <field name="transbank_onepay_order_status_id_rejected" type="vmorderstate" scope="com_virtuemart" default="D" label="VMPAYMENT_TRANSBANK_ONEPAY_ORDER_STATUS_REJECTED" />
                 <field name="transbank_onepay_order_status_id_cancelled" type="vmorderstate" scope="com_virtuemart" default="X" label="VMPAYMENT_TRANSBANK_ONEPAY_ORDER_STATUS_CANCELLED" />

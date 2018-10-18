@@ -9,7 +9,7 @@ then
 fi
 
 SRC_DIR="src"
-FILE1="transbank_onepay.php"
+FILE1="/transbank_onepay/library/TransbankSdkOnepay.php"
 FILE2="transbank_onepay.xml"
 
 sed -i.bkp "s/PLUGIN_VERSION = '1.0.0';/PLUGIN_VERSION = '${TRAVIS_TAG}';/g" "$SRC_DIR/$FILE1"
