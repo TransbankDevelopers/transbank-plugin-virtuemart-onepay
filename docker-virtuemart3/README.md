@@ -47,27 +47,11 @@ Debes habilitar el registro de usuarios clickeando "Manage" bajo el menú "Users
 
 ![paso 3](img/paso3.png)
 
-Allow User registration: Yes
+- Allow User registration: **Yes**
+
+Luego presionar el botón [Save] para guardar los cambios.
 
 ![paso 4](img/paso4.png)
-
-### Configurar error de permisos
-
-Si en algún momento en cualquier pantalla de Joomla aparece el siguiente error, seguir mediante "setup wizard" para corregir.
-
-![paso 5](img/paso5.png)
-
-Presionar el botón con el texto "Create and configure safepath using the administrator com_virtuemart folder"
-
-![paso 6](img/paso6.png)
-
-Aceptar el diálogo presionando "Ok"
-
-![paso 7](img/paso7.png)
-
-Mostrará que ha sido ejecutado correctamente.
-
-![paso 8](img/paso8.png)
 
 ### Configurar moneda Chilena
 
@@ -97,6 +81,24 @@ Enabled: Checked
 Activated: Checked
 
 ![user 2](img/user2.png)
+
+### Configurar error de permisos
+
+Si en algún momento en cualquier pantalla de Joomla aparece el siguiente error, seguir mediante "setup wizard" para corregir.
+
+![paso 5](img/paso5.png)
+
+Presionar el botón con el texto "Create and configure safepath using the administrator com_virtuemart folder"
+
+![paso 6](img/paso6.png)
+
+Aceptar el diálogo presionando "Ok"
+
+![paso 7](img/paso7.png)
+
+Mostrará que ha sido ejecutado correctamente.
+
+![paso 8](img/paso8.png)
 
 ### Archivo de logs del plugin
 
