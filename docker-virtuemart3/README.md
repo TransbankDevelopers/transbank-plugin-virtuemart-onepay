@@ -55,17 +55,19 @@ Luego presionar el botón [Save] para guardar los cambios.
 
 ### Configurar moneda Chilena
 
-Ir a (VirtueMart / Shop) y en sección "Currency" elegir "Chilean Peso"
+Ir a (VirtueMart / Shop) y en sección "Currency" elegir "Chilean Peso", luego presionar el botón [Save] para guardar los cambios.
 
 ![moneda 1](img/moneda1.png)
 
-Ir al menu izquierdo (Configuration / Countries) y seleccionar "Chilean peso"
+Ir al menu izquierdo (Configuration / Currencies) y seleccionar "Chilean peso"
 
 ![moneda 2](img/moneda2.png)
 
 Dejar los valores como se muestran en la siguiente imagen.
 
 - Decimals: 0
+
+Luego presionar el botón [Save] para guardar los cambios.
 
 ![moneda 3](img/moneda3.png)
 
