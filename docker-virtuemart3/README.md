@@ -43,7 +43,7 @@ La primera vez es necesario instalar virtuemart y datos de prueba desde el sitio
 
 ![paso 2](img/paso2.png)
 
-Debes habilitar el registro de usuarios en (Users / Manager) botón [Options].
+Debes habilitar el registro de usuarios clickeando "Manage" bajo el menú "Users" y una vez que has ingresado presionar el botón [Options].
 
 ![paso 3](img/paso3.png)
 
@@ -51,7 +51,9 @@ Allow User registration: Yes
 
 ![paso 4](img/paso4.png)
 
-Si aparece el siguiente error, seguir mediante "setup wizard"
+### Configurar error de permisos
+
+Si en algún momento en cualquier pantalla de Joomla aparece el siguiente error, seguir mediante "setup wizard" para corregir.
 
 ![paso 5](img/paso5.png)
 
