@@ -37,13 +37,70 @@ Para instalar Virtuemart, hacer lo siguiente:
     password: password
 
 ### Importante
-La primera vez es necesario instalar virtuemart y datos de prueba desde el sitio administrador, ir a http://localhost/administrator e instalar Virtuemart con datos de prueba
+La primera vez es necesario instalar virtuemart y datos de prueba desde el sitio administrador, ir a http://localhost/administrator e instalar Virtuemart con datos de prueba.
+
+![paso 1](img/paso1.png)
+
+![paso 2](img/paso2.png)
+
+Debes habilitar el registro de usuarios en (Users / Manager) botón [Options].
+
+![paso 3](img/paso3.png)
+
+Allow User registration: Yes
+
+![paso 4](img/paso4.png)
+
+Si aparece el siguiente error, seguir mediante "setup wizard"
+
+![paso 5](img/paso5.png)
+
+Presionar el botón con el texto "Create and configure safepath using the administrator com_virtuemart folder"
+
+![paso 6](img/paso6.png)
+
+Aceptar el diálogo presionando "Ok"
+
+![paso 7](img/paso7.png)
+
+Mostrará que ha sido ejecutado correctamente.
+
+![paso 8](img/paso8.png)
+
+### Configurar moneda Chilena
+
+Ir a (VirtueMart / Shop) y en sección "Currency" elegir "Chilean Peso"
+
+![moneda 1](img/moneda1.png)
+
+Ir al menu izquierdo (Configuration / Countries) y seleccionar "Chilean peso"
+
+![moneda 2](img/moneda2.png)
+
+Dejar los valores como se muestran en la siguiente imagen.
+
+- Decimals: 0
+
+![moneda 3](img/moneda3.png)
+
+## Extras
+
+### Habilitar y activar usuario registrado para pruebas
+
+Si registras un usuario de prueba para el comercio, luego de registrarlo deberás habilitarlo y activarlo en la sección de usuarios.
+
+![user 1](img/user1.png)
+
+Enabled: Checked  
+Activated: Checked
+
+![user 2](img/user2.png)
 
 ### Archivo de logs del plugin
 
 ```
 ./shell
-tail -f /logs/onepay-log.log
+tail -f /var/www/html/administrator/logs/onepay-log.log.php
 ```
     
 Basado en:
