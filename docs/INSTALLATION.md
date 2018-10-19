@@ -26,6 +26,8 @@ Este plugin oficial ha sido creado para que puedas integrar Onepay fácilmente e
 
 Este plugin posee un sitio de configuración que te permitirá ingresar credenciales que Transbank te otorgará y además podrás generar un documento de diagnóstico en caso que Transbank te lo pida.
 
+**IMPORTANTE:** El plugin solamente funciona con moneda chilena CLP dado esto ViertueMart debe estar correctamente configurado para que que se pueda usar Onepay el país y el tipo de moneda deben ser Chile.
+
 Para acceder a la configuración, debes seguir los siguientes pasos:
 
 1. Dirígete a la página de administración de VirtueMart (usualmente en http://misitio.com/administrator, http://localhost/administrator) e ingresa usuario y clave.
