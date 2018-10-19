@@ -45,7 +45,7 @@ Para acceder a la configuración, debes seguir los siguientes pasos:
     - Payment Name: Transbank Onepay 
     - Sef Alias: transbank_onepay
     - Published: Yes
-    - Payment Method: Transbank onepay
+    - Payment Method: Transbank Onepay
     - Currency: Chilean peso
 
   ![Paso 6](img/paso6.png)
@@ -115,7 +115,7 @@ En ambiente de integración es posible realizar una prueba de transacción utili
 
  ![demo 7](img/demo7.png)
 
-* Además si accedes al sitio de administración seccion (VirtueMart / Ordes) se podrá ver la orden creada y el detalle de los datos entregados por Onepay.
+* Además si accedes al sitio de administración seccion (VirtueMart / Orders) se podrá ver la orden creada y el detalle de los datos entregados por Onepay.
 
  ![demo 8](img/demo8.png)
 
