@@ -16,4 +16,7 @@ unzip "$PHP_SDK_VERSION.zip" -d $DIR_LIBS
 rm -rf "$PHP_SDK_VERSION.zip"
 mv "$DIR_DEST_SDK-$PHP_SDK_VERSION" "$DIR_DEST_SDK"
 
+echo "Remove webpay sdk, is not necessary"
+sed -i.bkp '/lib\/webpay/d' "$DIR_DEST_SDK/init.php"
+
 echo "SDK version: $PHP_SDK_VERSION"
