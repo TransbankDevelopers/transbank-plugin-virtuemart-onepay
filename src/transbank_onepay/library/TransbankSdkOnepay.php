@@ -25,7 +25,7 @@ class TransbankSdkOnepay {
     const APP_KEY = 'D2044F06-B8AA-4653-8409-2571C2A9E273'; //app key for virtuemart
 
     //url of the js sdk
-    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.4/lib/merchant.onepay.min.js';
+    const JS_SDK = 'https://cdn.rawgit.com/TransbankDevelopers/transbank-sdk-js-onepay/v1.5.8/lib/merchant.onepay.min.js';
 
     //constants for log handler
     const LOG_FILENAME = 'onepay-log'; //name of the log file
