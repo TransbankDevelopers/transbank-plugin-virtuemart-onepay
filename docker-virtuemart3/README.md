@@ -22,7 +22,7 @@ Instalar [Docker](https://docs.docker.com/engine/installation/linux/docker-ce/ub
 
 Para instalar Virtuemart, hacer lo siguiente:
 
-**NOTA:** La primera vez que se ejecuta ./start o ./build demorará en instalar todo woocommerce, esperar al menos unos 5 minutos.
+**NOTA:** La primera vez que se ejecuta ./start o ./build demorará en instalar todo, esperar al menos unos 5 minutos.
 
 ### Construir el contenedor desde cero
 
