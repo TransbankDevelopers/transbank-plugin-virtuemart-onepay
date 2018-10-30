@@ -6,8 +6,7 @@ y este proyecto adhiere a [Semantic Versioning](http://semver.org/spec/v2.0.0.ht
 
 ## [1.0.2] - 2018-10-29
 ### Changed
-- Se actualiza sdk js a versión 1.5.8
-- Se actualiza sdk php a versión 1.4.1
+- Se corrige un problema de incompatibilidad de Onepay con virtuemart y joomla.
 
 ## [1.0.1] - 2018-10-25
 ### Changed
