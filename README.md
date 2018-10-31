@@ -10,8 +10,8 @@ Este plugin de Virtuemart 3.x implementa el [SDK PHP de Onepay](https://github.c
 * fpdf
 
 ## Nota  
-- La versión del sdk de php se encuentra en el archivo config.sh
-- La versión del sdk de javascript se encuentra en el archivo src/transbank_onepay/library/TransbankSdkOnepay.php
+- La versión del sdk de php se encuentra en el archivo `config.sh`
+- La versión del sdk de javascript se encuentra en el archivo `src/transbank_onepay/library/TransbankSdkOnepay.php`
 
 ## Preparar el proyecto para bajar dependencias
 

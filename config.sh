@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #Script for configure the plugin project
-PHP_SDK_VERSION="1.4.0"
+PHP_SDK_VERSION="1.4.1"
 REPO_SDK="https://github.com/TransbankDevelopers/transbank-sdk-php/archive/$PHP_SDK_VERSION.zip"
 DIR_LIBS="src/transbank_onepay/library"
 DIR_NAME_SDK="transbank-sdk-php"
