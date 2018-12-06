@@ -121,7 +121,9 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $channel = vRequest::getCmd('channel');
             $items = $session->get('items');
 
-            $response = $this->transbankSdkOnepay->createTransaction($channel, TransbankSdkOnepay::PLUGIN_CODE, $items);
+            $callbackUrl = JURI::root() . self::BASE_URL_ACTIONS . '&action=commit&cid=' . $dataTransbankOnepay['virtuemart_paymentmethod_id'];
+
+            $response = $this->transbankSdkOnepay->createTransaction($channel, TransbankSdkOnepay::PLUGIN_CODE, $items, $callbackUrl);
 
             $dataTransbankOnepay['payment_order_total'] = $response['amount'];
             $session->set('dataTransbankOnepay', $dataTransbankOnepay);
@@ -445,6 +447,16 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
             $urlLogo = $this->transbankSdkOnepay->getLogoUrl();
             $urlLogo = $urlLogo != NULL ? $urlLogo : '';
 
+            $transactionDescription = '';
+
+            if (count($cart->products) == 1) {
+                foreach ($cart->products as $pkey => $product) {
+                    $transactionDescription = htmlspecialchars($product->product_name);
+                    break;
+                }
+            }
+
+
             $jsSdk = TransbankSdkOnepay::JS_SDK;
             $jsScript =
             "<script type='text/javascript'>
@@ -467,7 +479,8 @@ class plgVmPaymentTransbank_Onepay extends vmPSPlugin {
                     var options = {
                         endpoint: '{$urlCreate}',
                         commerceLogo: '{$urlLogo}',
-                        callbackUrl: '{$urlCommit}'
+                        callbackUrl: '{$urlCommit}',
+                        transactionDescription: '{$transactionDescription}'
                     };
                     Onepay.checkout(options);
                 });

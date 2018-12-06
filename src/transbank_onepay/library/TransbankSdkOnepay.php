@@ -119,6 +119,7 @@ class TransbankSdkOnepay {
      */
     private function getOnepayOptions() {
 
+
         $apiKey = $this->getApiKey();
         $sharedSecret = $this->getSharedSecret();
         $environment = $this->getEnvironment();
@@ -141,7 +142,7 @@ class TransbankSdkOnepay {
     /**
      * create a transaction in onepay
      */
-    public function createTransaction($channel, $paymentMethod, $items) {
+    public function createTransaction($channel, $paymentMethod, $items, $callbackUrl) {
 
         if ($channel == null) {
             return $this->failCreate('Falta parámetro channel');
@@ -152,6 +153,8 @@ class TransbankSdkOnepay {
         }
 
         try {
+
+            OnepayBase::setCallbackUrl($callbackUrl);
 
             $options = $this->getOnepayOptions();
 
